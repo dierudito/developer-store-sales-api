@@ -11,6 +11,12 @@ public class BaseEntity : IComparable<BaseEntity>
         return Validator.ValidateAsync(this);
     }
 
+    public ValidationResultDetail ValidationResultDetail { get; set; } = new();
+    public void AddValidationError(List<ValidationErrorDetail> errors)
+    {
+        ValidationResultDetail.Errors = ValidationResultDetail.Errors.Concat(errors).ToList();
+    }
+
     public int CompareTo(BaseEntity? other)
     {
         if (other == null)
