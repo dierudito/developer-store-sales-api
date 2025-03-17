@@ -8,28 +8,28 @@ public interface ISaleService
     /// </summary>
     /// <param name="sale">The sale entity to create.</param>
     /// <returns>The created sale entity.</returns>
-    Task<Sale> CreateAsync(Sale sale);
+    Task<Sale> CreateAsync(Sale sale, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a sale by its ID.
     /// </summary>
     /// <param name="id">The ID of the sale to retrieve.</param>
     /// <returns>The sale entity, or null if not found.</returns>
-    Task<Sale> GetSaleByIdAsync(Guid id);
+    Task<Sale?> GetSaleByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates an existing sale.
     /// </summary>
     /// <param name="sale">The sale entity to update.</param>
     /// <returns>The updated sale entity.</returns>
-    Task<Sale> UpdateAsync(Sale sale);
+    Task<Sale> UpdateAsync(Sale sale, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cancels a sale.
     /// </summary>
     /// <param name="id">The ID of the sale to cancel.</param>
     /// <returns>True if the sale was cancelled, false otherwise.</returns>
-    Task<bool> CancelAsync(Guid id);
+    Task<bool> CancelAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds an item to a sale.
@@ -51,5 +51,5 @@ public interface ISaleService
     /// Retrieves all sales.
     /// </summary>
     /// <returns>A collection of all sale entities.</returns>
-    Task<IEnumerable<Sale>> GetAllSalesAsync();
+    Task<IEnumerable<Sale>> GetAllSalesAsync(CancellationToken cancellationToken = default);
 }

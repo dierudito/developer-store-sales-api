@@ -16,5 +16,5 @@ public class Customer : BaseEntity
     /// <summary>
     /// Gets or sets the email address of the customer.
     /// </summary>
-    public string Email { get; set; } = null!;
+    public string? Email { get; set; }
 }
