@@ -10,5 +10,7 @@ public class DomainServiceModuleInitializer : IModuleInitializer
     public void Initialize(WebApplicationBuilder builder)
     {
         builder.Services.AddScoped<ISaleService, SaleService>();
+        builder.Services.AddScoped<IBranchService, BranchService>();
+        builder.Services.AddScoped<ICustomerService, CustomerService>();
     }
 }

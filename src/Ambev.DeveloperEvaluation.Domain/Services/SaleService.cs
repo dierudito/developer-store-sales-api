@@ -10,7 +10,7 @@ public class SaleService(ISaleRepository saleRepository, ISaleItemRepository sal
     {
         await saleRepository.CreateAsync(sale, cancellationToken);
         await saleItemRepository.AddRangeAsync(sale.Items, cancellationToken);
-        await saleRepository.CommitAsync();
+        await saleRepository.CommitAsync(cancellationToken);
         return sale;
     }
 
