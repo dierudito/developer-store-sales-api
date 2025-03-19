@@ -1,14 +1,15 @@
-using MediatR;
-using FluentValidation;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Events;
+using Ambev.DeveloperEvaluation.Domain.Publishers;
 using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using FluentValidation;
+using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
 
 /// <summary>
 /// Handler for processing DeleteSaleCommand requests
 /// </summary>
-public class DeleteSaleHandler (ISaleService service) : IRequestHandler<DeleteSaleCommand, DeleteSaleResponse>
+public class DeleteSaleHandler(ISaleService service, IEventPublisher eventPublisher) : IRequestHandler<DeleteSaleCommand, DeleteSaleResponse>
 {
     /// <summary>
     /// Handles the DeleteSaleCommand request
@@ -26,6 +27,14 @@ public class DeleteSaleHandler (ISaleService service) : IRequestHandler<DeleteSa
 
         await service.DeleteAsync(command.Id, cancellationToken);
         var saleEntity = await service.GetSaleByIdAsync(command.Id, cancellationToken);
+
+        var saleCancelledEvent = new SaleCancelledEvent
+        {
+            SaleId = command.Id
+        };
+
+        if (saleEntity == null)
+            await eventPublisher.PublishSaleCancelledEvent(saleCancelledEvent);
 
         return new DeleteSaleResponse { Success = saleEntity == null };
     }

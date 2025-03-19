@@ -1,11 +1,13 @@
 ﻿using Ambev.DeveloperEvaluation.Domain.Entities;
+using Ambev.DeveloperEvaluation.Domain.Events;
+using Ambev.DeveloperEvaluation.Domain.Publishers;
 using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using AutoMapper;
 using FluentValidation;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
-public class CreateSaleHandler(IMapper mapper, ISaleService saleService) :
+public class CreateSaleHandler(IMapper mapper, ISaleService saleService, IEventPublisher eventPublisher) :
     IRequestHandler<CreateSaleCommand, CreateSaleResult>
 {
     public async Task<CreateSaleResult> Handle(CreateSaleCommand command, CancellationToken cancellationToken)
@@ -21,7 +23,16 @@ public class CreateSaleHandler(IMapper mapper, ISaleService saleService) :
         }
 
         var createdSale = await saleService.CreateAsync(sale, cancellationToken);
+        var saleCreatedEvent = new SaleCreatedEvent
+        {
+            SaleId = createdSale.Id,
+            BranchId = createdSale.BranchId,
+            CustomerId = createdSale.CustomerId,
+            SaleNumber = createdSale.SaleNumber
+        };
+        await eventPublisher.PublishSaleCreatedEvent(saleCreatedEvent);
         var result = mapper.Map<CreateSaleResult>(createdSale);
+
         return result;
     }
 }

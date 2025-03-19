@@ -1,10 +1,12 @@
-﻿using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+﻿using Ambev.DeveloperEvaluation.Domain.Events;
+using Ambev.DeveloperEvaluation.Domain.Publishers;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using FluentValidation;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSaleItem;
 
-public class CancelSaleItemHandler(ISaleService service) : IRequestHandler<CancelSaleItemCommand, bool>
+public class CancelSaleItemHandler(ISaleService service, IEventPublisher eventPublisher) : IRequestHandler<CancelSaleItemCommand, bool>
 {
     public async Task<bool> Handle(CancelSaleItemCommand command, CancellationToken cancellationToken)
     {
@@ -20,7 +22,13 @@ public class CancelSaleItemHandler(ISaleService service) : IRequestHandler<Cance
         var saleItem = sale.Items.FirstOrDefault(item => item.Id == command.SaleItemId) ??
                        throw new KeyNotFoundException($"Sale item with ID {command.SaleItemId} not found");
 
-        await service.CancelItemAsync(sale, saleItem, cancellationToken);
+        await service.CancelItemAsync(sale, saleItem, cancellationToken); 
+        var itemCancelledEvent = new ItemCancelledEvent
+        {
+            SaleId = saleItem.SaleId,
+            SaleItemId = saleItem.Id
+        };
+        await eventPublisher.PublishItemCancelledEvent(itemCancelledEvent);
         return true;
     }
 }
