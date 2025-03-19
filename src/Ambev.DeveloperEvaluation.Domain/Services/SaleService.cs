@@ -1,31 +1,36 @@
 ﻿using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Domain.Services;
-public class SaleService(ISaleRepository saleRepository, ISaleItemRepository saleItemRepository) : 
+public class SaleService(ISaleRepository saleRepository, ILogger<SaleService> logger) : 
     ISaleService
 {
     public async Task<Sale> CreateAsync(Sale sale, CancellationToken cancellationToken = default)
     {
         await saleRepository.CreateAsync(sale, cancellationToken);
-        await saleItemRepository.AddRangeAsync(sale.Items, cancellationToken);
         await saleRepository.CommitAsync(cancellationToken);
+        
+        // Publicar o evento de venda criada (log no aplicativo)
+        logger.LogInformation("SaleCreated event published: SaleId = {SaleId}", sale.Id);
         return sale;
     }
 
-    public Task<Sale> UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
+    public async Task<Sale> UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
-    }
-    public async Task<Sale> AddItemToSaleAsync(Guid saleId, SaleItem saleItem)
-    {
-        throw new NotImplementedException();
+        await saleRepository.UpdateAsync(sale);
+        await saleRepository.CommitAsync(cancellationToken);
+
+        // Publicar o evento de venda modificada (log no aplicativo)
+        logger.LogInformation("SaleModified event published: SaleId = {SaleId}", sale.Id);
+        return sale;
     }
 
-    public Task<bool> CancelAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await saleRepository.DeleteAsync(id);
+        await saleRepository.CommitAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<Sale>> GetAllSalesAsync(CancellationToken cancellationToken = default) =>
@@ -33,9 +38,4 @@ public class SaleService(ISaleRepository saleRepository, ISaleItemRepository sal
 
     public async Task<Sale?> GetSaleByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         await saleRepository.GetByIdAsync(id, cancellationToken);
-
-    public Task<Sale> RemoveItemFromSaleAsync(Guid saleId, Guid itemId)
-    {
-        throw new NotImplementedException();
-    }
 }

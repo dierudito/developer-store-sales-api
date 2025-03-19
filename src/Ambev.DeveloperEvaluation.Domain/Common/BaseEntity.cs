@@ -14,6 +14,7 @@ public class BaseEntity : IComparable<BaseEntity>
     public ValidationResultDetail ValidationResultDetail { get; set; } = new() { IsValid = true };
     public void AddValidationError(List<ValidationErrorDetail> errors)
     {
+        ValidationResultDetail.IsValid = false;
         ValidationResultDetail.Errors = ValidationResultDetail.Errors.Concat(errors).ToList();
     }
 
