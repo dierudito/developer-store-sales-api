@@ -1,4 +1,6 @@
-﻿using Ambev.DeveloperEvaluation.Domain.Common;
+﻿using Ambev.DeveloperEvaluation.Common.Validation;
+using Ambev.DeveloperEvaluation.Domain.Common;
+using FluentValidation.Results;
 
 namespace Ambev.DeveloperEvaluation.Domain.Entities;
 
@@ -69,11 +71,15 @@ public class Sale : BaseEntity
     public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
-    /// Cancels the sale.
+    /// Updates the properties of the current Sale instance with the values from the provided Sale object.
     /// </summary>
-    public void CancelSale()
+    /// <param name="sale">The Sale object containing the updated values.</param>
+    public void UpdateSale(Sale sale)
     {
-        IsCancelled = true;
+        SaleNumber = sale.SaleNumber;
+        SaleDate = sale.SaleDate;
+        CustomerId = sale.CustomerId;
+        BranchId = sale.BranchId;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -98,13 +104,46 @@ public class Sale : BaseEntity
     }
 
     /// <summary>
-    /// Removes an item from the sale.
+    /// Updates an existing item in the sale with the provided updated item details.
     /// </summary>
-    /// <param name="item">The item to remove.</param>
-    public void RemoveItem(SaleItem item)
+    /// <param name="existingItem">The existing SaleItem to be updated.</param>
+    /// <param name="itemUpdated">The SaleItem containing the updated values.</param>
+    public void UpdateItem(SaleItem existingItem, SaleItem itemUpdated)
     {
-        Items.Remove(item);
+        if (existingItem.IsCancelled)
+        {
+            AddValidationError([(ValidationErrorDetail) new ValidationFailure("Item", "The item is already cancelled")]);
+            return;
+        }
+
+        var itemValidate = itemUpdated.Validate();
+
+        if (!itemValidate.IsValid)
+        {
+            AddValidationError(itemValidate.Errors.ToList());
+            return;
+        }
+
+        existingItem.ProductId = itemUpdated.ProductId;
+        existingItem.Quantity = itemUpdated.Quantity;
+        existingItem.UnitPrice = itemUpdated.UnitPrice;
+
         CalculateTotalAmount();
+    }
+
+    /// <summary>
+    /// Cancels an item from the sale.
+    /// </summary>
+    /// <param name="item">The item to cancel.</param>
+    public void CancelItem(SaleItem item)
+    {
+        var saleItem = Items.FirstOrDefault(i => i.Id == item.Id);
+        if (saleItem != null)
+        {
+            saleItem.IsCancelled = true;
+            UpdatedAt = DateTime.UtcNow;
+            CalculateTotalAmount();
+        }
     }
     
     /// <summary>
@@ -112,7 +151,7 @@ public class Sale : BaseEntity
     /// </summary>
     private void CalculateTotalAmount()
     {
-        var totalAmountWithouDiscount = Items.Sum(saleItem => saleItem.Quantity * saleItem.UnitPrice);
+        var totalAmountWithouDiscount = Items.Where(saleItem => !saleItem.IsCancelled).Sum(saleItem => saleItem.Quantity * saleItem.UnitPrice);
         CalculateDiscount();
         var discountAmount = totalAmountWithouDiscount * Discount / 100;
         TotalAmount = totalAmountWithouDiscount - discountAmount;
@@ -127,13 +166,9 @@ public class Sale : BaseEntity
             _ => 0
         };
     }
-    private bool HasSecondDiscountLevel()
-    {
-        return Items.Any(item => item.Quantity is >= 10 and < 20);
-    }
+    private bool HasSecondDiscountLevel() => 
+        Items.Any(saleItem => !saleItem.IsCancelled && saleItem.Quantity is >= 10 and < 20);
 
-    private bool HasFirstDiscountLevel()
-    {
-        return Items.Any(item => item.Quantity > 4);
-    }
+    private bool HasFirstDiscountLevel() => 
+        Items.Any(saleItem => !saleItem.IsCancelled && saleItem.Quantity > 4);
 }

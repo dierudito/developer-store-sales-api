@@ -12,6 +12,8 @@ using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSale;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Ambev.DeveloperEvaluation.Application.Sales.CancelSaleItem;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CancelSaleItem;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales;
 
@@ -148,5 +150,37 @@ public class SalesController(IMediator mediator, IMapper mapper) : BaseControlle
             Success = response.Success,
             Message = "Sale deleted successfully"
         });
+    }
+
+    /// <summary>
+    /// Cancels a specific item within a sale.
+    /// </summary>
+    /// <param name="saleId">The unique identifier of the sale.</param>
+    /// <param name="saleItemId">The unique identifier of the item to cancel within the sale.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+    /// <returns>
+    /// Returns an <see cref="IActionResult"/> indicating the result of the operation.
+    /// </returns>
+    [HttpPatch("{saleId:guid}/cancelItem/{saleItemId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelSaleItem([FromRoute] Guid saleId, [FromRoute] Guid saleItemId, CancellationToken cancellationToken)
+    {
+        var request = new CancelSaleItemRequest { SaleId = saleId, SaleItemId = saleItemId };
+        var validator = new CancelSaleItemRequestValidator();
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+        if (!validationResult.IsValid)
+            return BadRequest(validationResult.Errors);
+
+        var command = mapper.Map<CancelSaleItemCommand>(request);
+        var response = await mediator.Send(command, cancellationToken);
+
+        if (!response)
+        {
+            return NotFound(new ApiResponse { Success = false, Message = "Sale item not found" });
+        }
+
+        return Ok(new ApiResponse { Success = true, Message = "Sale item cancelled successfully" });
     }
 }

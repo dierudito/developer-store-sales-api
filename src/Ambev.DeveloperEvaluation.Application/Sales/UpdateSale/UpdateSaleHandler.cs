@@ -13,20 +13,27 @@ public class UpdateSaleHandler(IMapper mapper, ISaleService saleService) :
         var saleEntity = await saleService.GetSaleByIdAsync(command.Id, cancellationToken) ?? 
                          throw new KeyNotFoundException($"Sale with ID {command.Id} not found"); 
         
-        mapper.Map(command, saleEntity);
+        var saleFromCommand = mapper.Map<Sale>(command);
+        saleEntity.UpdateSale(saleFromCommand);
 
-        saleEntity.Items.Clear();
-        var saleItems = mapper.Map<List<SaleItem>>(command.Items);
-
-        foreach (var item in saleItems)
-        {
-            saleEntity.AddItem(item);
-            if (!saleEntity.ValidationResultDetail.IsValid)
-                throw new ValidationException(string.Join(", ", saleEntity.ValidationResultDetail.Errors.Select(e => e.Error)));
-        }
+        var saleItemsFromCommand = mapper.Map<List<SaleItem>>(command.Items);
+        UpsertSaleItems(saleEntity, saleItemsFromCommand);
 
         var updatedSale = await saleService.UpdateAsync(saleEntity, cancellationToken);
         var result = mapper.Map<UpdateSaleResult>(updatedSale);
         return result;
+    }
+
+    private static void UpsertSaleItems(Sale saleEntity, List<SaleItem> saleItemsEntity)
+    {
+        foreach (var saleItem in saleItemsEntity)
+        {
+            var existingItem = saleEntity.Items.FirstOrDefault(i => i.Id == saleItem.Id);
+
+            if (existingItem != null) saleEntity.UpdateItem(existingItem, saleItem);
+            else saleEntity.AddItem(saleItem);
+            if (!saleEntity.ValidationResultDetail.IsValid)
+                throw new ValidationException(string.Join(", ", saleEntity.ValidationResultDetail.Errors.Select(e => e.Error)));
+        }
     }
 }
