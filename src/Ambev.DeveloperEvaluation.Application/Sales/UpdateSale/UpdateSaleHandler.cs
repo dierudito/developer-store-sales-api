@@ -1,11 +1,13 @@
 ﻿using Ambev.DeveloperEvaluation.Domain.Entities;
+using Ambev.DeveloperEvaluation.Domain.Events;
+using Ambev.DeveloperEvaluation.Domain.Publishers;
 using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using AutoMapper;
 using FluentValidation;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
-public class UpdateSaleHandler(IMapper mapper, ISaleService saleService) :
+public class UpdateSaleHandler(IMapper mapper, ISaleService saleService, IEventPublisher eventPublisher) :
     IRequestHandler<UpdateSaleCommand, UpdateSaleResult>
 {
     public async Task<UpdateSaleResult> Handle(UpdateSaleCommand command, CancellationToken cancellationToken)
@@ -20,6 +22,15 @@ public class UpdateSaleHandler(IMapper mapper, ISaleService saleService) :
         UpsertSaleItems(saleEntity, saleItemsFromCommand);
 
         var updatedSale = await saleService.UpdateAsync(saleEntity, cancellationToken);
+        var saleModifiedEvent = new SaleModifiedEvent
+        {
+            SaleId = updatedSale.Id,
+            BranchId = updatedSale.BranchId,
+            CustomerId = updatedSale.CustomerId,
+            SaleNumber = updatedSale.SaleNumber
+        };
+        await eventPublisher.PublishSaleModifiedEvent(saleModifiedEvent);
+
         var result = mapper.Map<UpdateSaleResult>(updatedSale);
         return result;
     }
