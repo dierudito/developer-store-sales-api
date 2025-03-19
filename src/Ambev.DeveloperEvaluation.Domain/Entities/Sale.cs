@@ -91,6 +91,8 @@ public class Sale : BaseEntity
             return;
         }
 
+        item.SaleId = Id;
+
         Items.Add(item);
         CalculateTotalAmount();
     }
