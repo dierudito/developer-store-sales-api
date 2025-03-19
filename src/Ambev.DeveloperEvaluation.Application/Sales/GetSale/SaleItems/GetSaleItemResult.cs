@@ -9,4 +9,6 @@ public class GetSaleItemResult
     public int Quantity { get; set; }
 
     public decimal UnitPrice { get; set; }
+
+    public bool IsCancelled { get; set; }
 }
